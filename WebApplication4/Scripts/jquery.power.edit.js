@@ -1,32 +1,47 @@
 ﻿/*********************
- * * *
+ * 在线单项编辑插件 *
 **********************/
 ;
 (function () {
     $.fn.poweredit = function (options) {
         var applicationPath = window.applicationPath === "" ? "" : window.applicationPath || "../..";
-        var poweredit = function (elm, options) {
-            this.$elm = $(elm);
+        var defaluts = {
+            url: '',            //列表的url
+            params: {},            //参数集合
+            columns: [
+                //{ name: '', type: '' }
+            ],
+            callback: function (entity) { }
+        };
+        options = $.extend({}, defaluts, options);
+
+        var poweredit = function (_, column, options) {
             this.options = $.extend({}, poweredit.defaults, options);
+            this.column = $.extend({}, poweredit.column, column);
+
+            if (!this.column.name)
+                throw 'input\'s name is required!';
+            if (!this.column.type)
+                throw 'input\'s type is required!';
+
+            this.$form = $(_);
+            this.$elm = this.$form.find('input[name=' + column.name + ']');
+
+            if (!this.$elm)
+                throw 'unfound column ' + this.column.name;
+
             this.entity = $.extend({}, poweredit.entity, {
-                type: this.$elm.data('type'),
-                name: this.$elm.attr('name'),
-                text: this.$elm.attr('text'),
+                key: this.column.name + this.motheds.newGuid(),
+                text: this.$elm.data('text'),
                 value: this.$elm.val()
             });
-            if (this.$elm.data('options')) {
-                console.log('{ ' + this.$elm.data('options') + ' }');
-                this.rule = $.extend({}, poweredit.rule, JSON.parse('{ ' + this.$elm.data('options') + ' }'));
-            }
-
-            if (!this.entity.name)
-                throw 'input\'s name is required!';
-            if (!this.entity.type)
-                throw 'input\'s type is required!';
 
             this.init();
         };
-        poweredit.rule = {
+        poweredit.defaults = defaluts;
+        poweredit.column = {
+            name: '',
+            type: '',
             minLength: null,
             maxLength: null,
             min: null,
@@ -36,33 +51,26 @@
         };
         poweredit.entity = {
             key: '',
-            name: '',
-            type: '',
             text: '',
             value: null,
-        };
-        poweredit.defaults = {
-            url: '',            //列表的url
-            params: {},            //参数集合
-            callback: function (entity) { }
         };
         poweredit.prototype = {
             init: function () {
                 var self = this;
-                var name = this.entity.name, value = this.entity.value, text = this.entity.text;
-                var $lable = $('<span/>', { name: 'it' }).data('value', value).text(text ? text : value),
-                    $editit = $('<a/>', { name: 'editit' }).append($('<i/>').addClass('fa fa-edit fa-fw')),
-                    $submit = $('<a/>', { name: 'submit' }).append($('<i/>').addClass('fa fa-save fa-fw')),
-                    $cancel = $('<a/>', { name: 'cancel' }).append($('<i/>').addClass('fa fa-remove fa-fw'));
+                var name = this.column.name, value = this.entity.value, text = this.entity.text;
+                this.$lable = $('<span/>', { name: 'it' }).data('value', value).text(text ? text : value);
+                this.$editit = $('<a/>', { name: 'editit' }).append($('<i/>').addClass('fa fa-edit fa-fw'));
+                this.$submit = $('<a/>', { name: 'submit' }).append($('<i/>').addClass('fa fa-save fa-fw'));
+                this.$cancel = $('<a/>', { name: 'cancel' }).append($('<i/>').addClass('fa fa-remove fa-fw'));
 
                 this.$elm.attr('type', 'hidden');
                 this.$elm.parent().find('span[name], a').remove();
-                this.$elm.before($lable);
-                this.$elm.parent().append($editit).append($submit).append($cancel);
+                this.$elm.before(this.$lable);
+                this.$elm.parent().append(this.$editit).append(this.$submit).append(this.$cancel);
 
-                $editit.unbind("click").click($.proxy(self.editit, self));
-                $submit.unbind("click").click($.proxy(self.submit, self)).hide();
-                $cancel.unbind("click").click($.proxy(self.cancel, self)).hide();
+                this.$editit.unbind("click").click($.proxy(self.editit, self));
+                this.$submit.unbind("click").click($.proxy(self.submit, self)).hide();
+                this.$cancel.unbind("click").click($.proxy(self.cancel, self)).hide();
             },
             notice: function (msg) {
                 var self = this;
@@ -78,13 +86,11 @@
             },
             editit: function () {
                 var self = this;
-                var $lable = self.$elm.prev('span[name]'),
-                    $editit = self.$elm.parent().find('a[name=editit]'),
-                    $submit = self.$elm.parent().find('a[name=submit]'),
-                    $cancel = self.$elm.parent().find('a[name=cancel]');
 
-                $lable.hide(); $editit.hide();
-                $submit.show(); $cancel.show();
+                self.$lable.hide();
+                self.$editit.hide();
+                self.$submit.show();
+                self.$cancel.show();
 
                 self.renderit.call(self);
             },
@@ -117,117 +123,227 @@
             },
             display: function (ok) {
                 var self = this;
-                var $lable = self.$elm.prev('span[name]'),
-                    $editit = self.$elm.parent().find('a[name=editit]'),
-                    $submit = self.$elm.parent().find('a[name=submit]'),
-                    $cancel = self.$elm.parent().find('a[name=cancel]');
 
                 if (ok) {
-                    $lable.data('value', self.entity.value)
+                    self.$lable
+                        .data('value', self.entity.value)
                         .text(self.entity.text ? self.entity.text : self.entity.value);
                 } else {
-                    self.entity.value = $lable.data('value');
-                    self.entity.text = $lable.text();
+                    self.entity.text = self.$lable.text();
+                    self.entity.value = self.$lable.data('value');
                 }
 
                 if (self.entity.key) {
-                    var $input = self.$elm.parent().find('#' + self.entity.key);
+                    var $input = self.$elm.parent().find('[name=' + self.entity.key + ']'),
+                        $label = self.$elm.parent().find('label[for]');
                     if ($input.length) $input.remove();
-                    self.entity.key = '';
+                    if ($label.length) $label.remove();
                 }
-                $lable.show(); $editit.show();
-                $submit.hide(); $cancel.hide();
+                self.$lable.show();
+                self.$editit.show();
+                self.$submit.hide();
+                self.$cancel.hide();
             },
 
             renderit: function () {
                 var self = this;
-                var $input, $editit = self.$elm.parent().find('a[name=editit]');
-                self.entity.key = self.entity.name + Math.random() * Math.pow(10, 17);
+                var $input, $label;
 
-                switch (self.entity.type) {
-                    case 'text': {
-                        $input = $('<input/>', { type: self.entity.type, id: self.entity.key, name: self.entity.key });
+                switch (self.column.type) {
+                    case 'text':
+                    case 'date':
+                    case 'password': {
+                        $input = $('<input/>', { type: self.column.type, id: self.entity.key, name: self.entity.key });
                         $input.val(self.entity.value);
                     } break;
+                    case 'checkbox': {
+                        $label = $('<label>', { 'for': self.entity.key }).text(self.column.label);
+                        $input = $('<input/>', { type: self.column.type, id: self.entity.key, name: self.entity.key });
+
+                        if (typeof self.entity.value === 'string') {
+                            var value = self.entity.value.toLowerCase();
+                            $input.attr("checked", value == 'true' || value == 'checked');
+                        } else if (typeof self.entity.value === 'boolean') {
+                            $input.attr("checked", self.entity.value);
+                        }
+                    } break;
+                    case 'checkboxlist': {
+                        var array = [], selected = [];
+                        if (typeof self.entity.value == 'string') {
+                            selected = self.entity.value.split(',');
+                        } else if (typeof self.entity.value == 'object') {
+                            selected = self.entity.value;
+                        }
+                        for (var i = 0; i < self.column.data.length; i++) {
+                            var id = self.entity.key + '-' + i, item = self.column.data[i];
+                            var _$label = $('<label>', { 'for': id }).text(item.text),
+                                _$input = $('<input/>', { type: 'checkbox', id: id, name: self.entity.key }).val(item.value);
+                            var checked = $.grep(selected, function (e, i) { return e == item.value });
+                            if (checked.length) {
+                                _$input.attr('checked', true);
+                            }
+                            array.push(_$input);
+                            array.push(_$label);
+                        }
+                        self.$editit.after(array);
+                    } break;
+                    case 'radiobuttonlist': {
+                        var array = [];
+                        for (var i = 0; i < self.column.data.length; i++) {
+                            var id = self.entity.key + '-' + i, item = self.column.data[i];
+                            var _$label = $('<label>', { 'for': id }).text(item.text),
+                                _$input = $('<input/>', { type: 'radio', id: id, name: self.entity.key }).val(item.value);
+                            if (self.entity.value == item.value) {
+                                _$input.attr('checked', true);
+                            }
+                            array.push(_$input);
+                            array.push(_$label);
+                        }
+                        self.$editit.after(array);
+                    } break;
+                    case 'dropdownlist': {
+                        var selected = [];
+                        if (typeof self.entity.value == 'string') {
+                            selected = self.entity.value.split(',');
+                        } else if (typeof self.entity.value == 'object') {
+                            selected = self.entity.value;
+                        }
+                        $input = $('<select />', { id: self.entity.key, name: self.entity.key });
+                        for (var i = 0; i < self.column.data.length; i++) {
+                            var id = self.entity.key + '-' + i, item = self.column.data[i];
+                            var _$input = $('<option />', { value: item.value }).text(item.text);
+                            var checked = $.grep(selected, function (e, i) { return e == item.value });
+                            if (checked.length) {
+                                _$input.attr('selected', true);
+                            }
+                            $input.append(_$input);
+                        }
+                    } break;
                     case 'textarea': {
-                        $input = $('<textarea/>', { type: self.entity.type, id: self.entity.key, name: self.entity.key, row: 8 });
+                        $input = $('<textarea/>', { type: self.column.type, id: self.entity.key, name: self.entity.key, row: 8 });
                         $input.val(self.entity.value);
                     } break;
                     default:
-                        throw 'not supperted type:' + self.entity.type;
+                        throw 'not supperted type:' + self.column.type;
                 }
 
-                if (self.rule.css) {
-                    $input.css(self.rule.css);
+                if (!$input) return;
+
+                if (self.column.css) {
+                    $input.css(self.column.css);
                 }
-                if (self.rule.width) {
-                    $input.css({ 'width': self.rule.width });
+                if (self.column.width) {
+                    $input.css({ 'width': self.column.width });
                 }
-                if (self.rule.height) {
-                    $input.css({ 'height': self.rule.height });
+                if (self.column.height) {
+                    $input.css({ 'height': self.column.height });
                 }
-                if (self.rule.class) {
-                    $input.addClass(self.rule.class);
+                if (self.column.class) {
+                    $input.addClass(self.column.class);
                 }
-                if (self.rule.placeholder) {
-                    $input.attr('placeholder', self.rule.placeholder);
+                if (self.column.placeholder) {
+                    $input.attr('placeholder', self.column.placeholder);
                 }
-                $editit.after($input);
+
+                self.$editit.after($input);
+                if ($label) $input.after($label);
             },
             getvalue: function () {
                 var self = this;
-                var $input = self.$elm.parent().find('#' + self.entity.key);
-                var entity = $.extend({}, poweredit.entity, {
-                    name: self.entity.name,
-                    type: self.entity.type
-                });
+                var $input = self.$elm.parent().find('[name=' + self.entity.key + ']');
+                var entity = {
+                    name: poweredit.column.name,
+                    value: '',
+                    text: ''
+                };
 
-                switch (self.entity.type) {
-                    case 'text': 
-                    case 'textarea': {
+                switch (self.column.type) {
+                    case 'text':
+                    case 'date':
+                    case 'textarea':
+                    case 'password': {
                         entity.value = $input.val();
                     } break;
+                    case 'checkbox': {
+                        entity.value = $input.is(':checked');
+                    } break;
+                    case 'checkboxlist': {
+                        entity.value = []; entity.text = [];
+                        $.each($input, function (i, e) {
+                            if ($(e).is(':checked')) {
+                                entity.value.push($(e).val());
+                                entity.text.push($(e).next().text());
+                            }
+                        });
+                    } break;
+                    case 'radiobuttonlist': {
+                        $.each($input, function (i, e) {
+                            if ($(e).is(':checked')) {
+                                entity.value = $(e).val();
+                                entity.text = $(e).next().text();
+                            }
+                        });
+                    } break;
+                    case 'dropdownlist': {
+                        var selected = $input.find('option:selected')
+                        entity.value = selected.val();
+                        entity.text = selected.text();
+                    } break;
                     default:
-                        throw 'not supperted type:' + self.entity.type;
+                        throw 'not supperted type:' + self.column.type;
                 }
                 return entity;
             },
             validate: function (entity) {
                 var self = this;
 
-                if (typeof self.rule.validate === 'function') {
-                    return self.rule.validate(entity.value);
+                if (typeof self.column.validate === 'function') {
+                    return self.column.validate(entity.value);
                 }
-                if (typeof self.rule.minLength == 'number') {
-                    if (!entity.value || entity.value.length < self.rule.minLength) {
-                        self.notice('输入内容长度少于' + self.rule.minLength);
+                if (typeof self.column.minLength == 'number') {
+                    if (!entity.value || entity.value.length < self.column.minLength) {
+                        self.notice('输入内容长度少于' + self.column.minLength);
                         return false;
                     }
                 }
-                if (typeof self.rule.maxLength == 'number') {
-                    if (entity.value && entity.value.length > self.rule.maxLength) {
-                        self.notice('输入内容长度大于' + self.rule.maxLength);
+                if (typeof self.column.maxLength == 'number') {
+                    if (entity.value && entity.value.length > self.column.maxLength) {
+                        self.notice('输入内容长度大于' + self.column.maxLength);
                         return false;
                     }
                 }
-                if (typeof self.rule.min == 'number') {
-                    if (Number(entity.value) != NaN && Number(entity.value) < self.rule.min) {
-                        self.notice('输入数字小于' + self.rule.min);
+                if (typeof self.column.min == 'number') {
+                    if (Number(entity.value) != NaN && Number(entity.value) < self.column.min) {
+                        self.notice('输入数字小于' + self.column.min);
                         return false;
                     }
                 }
-                if (typeof self.rule.max == 'number') {
-                    if (Number(entity.value) != NaN && Number(entity.value) > self.rule.max) {
-                        self.notice('输入数字大于' + self.rule.max);
+                if (typeof self.column.max == 'number') {
+                    if (Number(entity.value) != NaN && Number(entity.value) > self.column.max) {
+                        self.notice('输入数字大于' + self.column.max);
                         return false;
                     }
                 }
                 return true;
+            },
+
+            motheds: {
+                newGuid: function () {
+                    var guid = "";
+                    for (var i = 1; i <= 32; i++) {
+                        var n = Math.floor(Math.random() * 16.0).toString(16);
+                        guid += n;
+                        if ((i == 8) || (i == 12) || (i == 16) || (i == 20))
+                            guid += "-";
+                    }
+                    return guid;
+                }
             }
         };
 
-        $.each(this, function (i, el) {
-            new poweredit(el, options);
+        var self = this;
+        $.each(options.columns, function (i, column) {
+            new poweredit(self, column, options);
         });
         return this;
     };
