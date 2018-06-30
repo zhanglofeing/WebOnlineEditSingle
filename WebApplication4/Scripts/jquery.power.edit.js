@@ -58,15 +58,16 @@
             init: function () {
                 var self = this;
                 var name = this.column.name, value = this.entity.value, text = this.entity.text;
-                this.$lable = $('<span/>', { name: 'it' }).data('value', value).text(text ? text : value);
-                this.$editit = $('<a/>', { name: 'editit' }).append($('<i/>').addClass('fa fa-edit fa-fw'));
-                this.$submit = $('<a/>', { name: 'submit' }).append($('<i/>').addClass('fa fa-save fa-fw'));
-                this.$cancel = $('<a/>', { name: 'cancel' }).append($('<i/>').addClass('fa fa-remove fa-fw'));
+                this.$target = $('<div/>').addClass('poweredit');
+                this.$label = $('<span/>').text(text ? text : value);
+                this.$editit = $('<a/>').addClass('edit').append($('<i/>').addClass('fa fa-edit fa-fw'));
+                this.$submit = $('<a/>').addClass('edit').append($('<i/>').addClass('fa fa-check fa-fw'));
+                this.$cancel = $('<a/>').append($('<i/>').addClass('fa fa-undo fa-fw'));
 
-                this.$elm.attr('type', 'hidden');
-                this.$elm.parent().find('span[name], a').remove();
-                this.$elm.before(this.$lable);
-                this.$elm.parent().append(this.$editit).append(this.$submit).append(this.$cancel);
+                this.$target.append(this.$label).append(this.$editit).append(this.$submit).append(this.$cancel)
+                this.$elm.attr('type', 'hidden').val(value);
+                this.$elm.parent().find('.poweredit').remove();
+                this.$elm.after(this.$target);
 
                 this.$editit.unbind("click").click($.proxy(self.editit, self));
                 this.$submit.unbind("click").click($.proxy(self.submit, self)).hide();
@@ -87,7 +88,7 @@
             editit: function () {
                 var self = this;
 
-                self.$lable.hide();
+                self.$label.hide();
                 self.$editit.hide();
                 self.$submit.show();
                 self.$cancel.show();
@@ -125,21 +126,20 @@
                 var self = this;
 
                 if (ok) {
-                    self.$lable
-                        .data('value', self.entity.value)
-                        .text(self.entity.text ? self.entity.text : self.entity.value);
+                    self.$elm.val(self.entity.value);
+                    self.$label.text(self.entity.text ? self.entity.text : self.entity.value);
                 } else {
-                    self.entity.text = self.$lable.text();
-                    self.entity.value = self.$lable.data('value');
+                    self.entity.value = self.$elm.val();
+                    self.entity.text = self.$label.text();
                 }
 
                 if (self.entity.key) {
-                    var $input = self.$elm.parent().find('[name=' + self.entity.key + ']'),
-                        $label = self.$elm.parent().find('label[for]');
+                    var $input = self.$target.find('[name=' + self.entity.key + ']'),
+                        $label = self.$target.find('label[for]');
                     if ($input.length) $input.remove();
                     if ($label.length) $label.remove();
                 }
-                self.$lable.show();
+                self.$label.show();
                 self.$editit.show();
                 self.$submit.hide();
                 self.$cancel.hide();
@@ -220,7 +220,7 @@
                         }
                     } break;
                     case 'textarea': {
-                        $input = $('<textarea/>', { type: self.column.type, id: self.entity.key, name: self.entity.key, row: 8 });
+                        $input = $('<textarea/>', { type: self.column.type, id: self.entity.key, name: self.entity.key, row: 8 }).css({ 'width': '90%', 'heigth': '80px' });
                         $input.val(self.entity.value);
                     } break;
                     default:
@@ -250,7 +250,7 @@
             },
             getvalue: function () {
                 var self = this;
-                var $input = self.$elm.parent().find('[name=' + self.entity.key + ']');
+                var $input = self.$target.find('[name=' + self.entity.key + ']');
                 var entity = {
                     name: poweredit.column.name,
                     value: '',
@@ -266,6 +266,7 @@
                     } break;
                     case 'checkbox': {
                         entity.value = $input.is(':checked');
+                        entity.text = entity.value ? $input.next().text() : '';
                     } break;
                     case 'checkboxlist': {
                         entity.value = []; entity.text = [];

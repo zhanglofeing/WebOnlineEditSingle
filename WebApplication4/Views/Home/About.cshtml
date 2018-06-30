@@ -5,6 +5,7 @@
 <h3>@ViewBag.Message</h3>
 
 @section scripts{
+    <link href="~/Scripts/jquery.power.edit.css" rel="stylesheet" />
     <script src="~/Scripts/jquery.power.edit.js"></script>
     <script type="text/javascript">
         $(function () {
@@ -23,60 +24,61 @@
                     { name: 'Agree', type: 'checkbox', label: '同意' },
                     { name: 'Year', type: 'radiobuttonlist', data: years },
                     { name: 'Month', type: 'checkboxlist', data: months },
-                    { name: 'Leader', type: 'dropdownlist', data: list },
-                    { name: 'Content', type: 'textarea', width: 500, height: 300 }
+                    { name: 'Leader', type: 'dropdownlist', data: list , width: 120 },
+                    { name: 'Content', type: 'textarea', width: '96%', height: 80 }
                 ]
             });
         });
     </script>
     <style type="text/css">
-        .poweredit { display:none; }
+        label { font-weight: unset !important }
+        [class*="col-"] { padding-top: 15px; padding-bottom: 15px; background-color: #eee; background-color: rgba(86,61,124,.15); border: 1px solid #ddd; border: 1px solid rgba(86,61,124,.2); }
     </style>
 }
 
 <div>
     <div class="row">
-        <div class="col-md-2 text-right">名称：</div>
-        <div class="col-md-2">
-            <input class="poweredit" name="Name" value="哈哈哈哈" />
+        <div class="col-md-1 text-right">名称：</div>
+        <div class="col-md-3">
+            <input class="powerinput" name="Name" value="哈哈哈哈" />
         </div>
-        <div class="col-md-2 text-right">密码：</div>
-        <div class="col-md-2">
-            <input class="poweredit" name="Password" value="" />
+        <div class="col-md-1 text-right">密码：</div>
+        <div class="col-md-3">
+            <input class="powerinput" name="Password" value="" />
         </div>
-        <div class="col-md-2 text-right">日期：</div>
-        <div class="col-md-2">
-            <input class="poweredit" name="Date" value="2016-10-22" />
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-md-2 text-right">年份：</div>
-        <div class="col-md-2">
-            <input class="poweredit" name="Year" value="2016" data-text="2016年" />
-        </div>
-        <div class="col-md-2 text-right">月份：</div>
-        <div class="col-md-6">
-            <input class="poweredit" name="Month" value="3,4,5,8" data-text="3月,4月,5月,8月" />
+        <div class="col-md-1 text-right">日期：</div>
+        <div class="col-md-3">
+            <input class="powerinput" name="Date" value="2016-10-22" />
         </div>
     </div>
     <div class="row">
-        <div class="col-md-2 text-right">描述：</div>
-        <div class="col-md-10">
-            <input class="poweredit" name="Content" value="ABC" />
+        <div class="col-md-1 text-right">年份：</div>
+        <div class="col-md-3">
+            <input class="powerinput" name="Year" value="2016" data-text="2016年" />
+        </div>
+        <div class="col-md-1 text-right">月份：</div>
+        <div class="col-md-7">
+            <input class="powerinput" name="Month" value="3,4,5,8" data-text="3月,4月,5月,8月" />
         </div>
     </div>
     <div class="row">
-        <div class="col-md-2 text-right">注意：</div>
-        <div class="col-md-2">
-            <input class="poweredit" name="Remember" value="false" />
+        <div class="col-md-1 text-right">描述：</div>
+        <div class="col-md-11">
+            <input class="powerinput" name="Content" value="ABC" />
         </div>
-        <div class="col-md-2 text-right">注意：</div>
-        <div class="col-md-2">
-            <input class="poweredit" name="Agree" value="true" />
+    </div>
+    <div class="row">
+        <div class="col-md-1 text-right">注意：</div>
+        <div class="col-md-3">
+            <input class="powerinput" name="Remember" value="false" />
         </div>
-        <div class="col-md-2 text-right">选择：</div>
-        <div class="col-md-2">
-            <input class="poweredit" name="Leader" />
+        <div class="col-md-1 text-right">注意：</div>
+        <div class="col-md-3">
+            <input class="powerinput" name="Agree" value="true" />
+        </div>
+        <div class="col-md-1 text-right">选择：</div>
+        <div class="col-md-3">
+            <input class="powerinput" name="Leader" />
         </div>
     </div>
 </div>

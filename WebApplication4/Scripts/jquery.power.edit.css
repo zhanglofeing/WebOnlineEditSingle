@@ -1,0 +1,11 @@
+﻿.powerinput { 
+    display:none;
+}
+.poweredit { 
+    display: inline-block;
+    width: 96%;
+}
+.poweredit .edit {
+    margin-left: 5px;
+
+}
