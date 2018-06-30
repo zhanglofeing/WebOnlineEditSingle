@@ -1,0 +1,27 @@
+﻿@{
+    ViewBag.Title = "About";
+}
+<h2>@ViewBag.Title.</h2>
+<h3>@ViewBag.Message</h3>
+
+@section scripts{
+    <script src="~/Scripts/jquery.power.edit.js"></script>
+    <script type="text/javascript">
+        $(function () {
+            $('.poweredit').poweredit({
+                url: '@Url.Action("Save")',
+                params: { id: '@Guid.NewGuid()' }
+            });
+        });
+    </script>
+    <style type="text/css">
+        .poweredit { display:none; }
+    </style>
+}
+
+<div>
+    <input class="poweredit" name="Title" data-type="text" data-options='"width":200' value="哈哈哈哈" />
+</div>
+<div style="margin-top:20px;">
+    <input class="poweredit" name="Content" data-type="textarea" data-options='"width":500,"height":120' value="ABC" />
+</div>
