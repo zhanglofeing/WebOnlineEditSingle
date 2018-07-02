@@ -1,11 +1,14 @@
-﻿.powerinput { 
-    display:none;
-}
-.poweredit { 
+﻿.poweredit { 
     display: inline-block;
     width: 96%;
 }
-.poweredit .edit {
-    margin-left: 5px;
 
+.poweredit .oper { 
+    margin-left: 5px;
+}
+
+.editting {
+    border: 1px dotted red;
+    border-radius: 4px;
+    padding: 2px;
 }

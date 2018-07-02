@@ -9,6 +9,7 @@
             url: '',            //Posturl
             params: {},         //参数集合
             enable: true,       //全局开关
+            onhover: true,     //悬浮显示编辑按钮
             columns: [
                 // column对象
             ],
@@ -70,10 +71,11 @@
                 var name = this.column.name, value = this.entity.value, text = this.entity.text;
                 this.$target = $('<div/>').addClass('poweredit');
                 this.$label = $('<span/>').text(text ? text : value);
-                this.$editit = $('<a/>', { title: '编辑' }).addClass('edit').append($('<i/>').addClass('fa fa-edit fa-fw'));
-                this.$submit = $('<a/>', { title: '提交' }).addClass('edit').append($('<i/>').addClass('fa fa-check fa-fw'));
+                this.$editit = $('<a/>', { title: '编辑' }).addClass('oper').append($('<i/>').addClass('fa fa-edit fa-fw'));
+                this.$submit = $('<a/>', { title: '提交' }).addClass('oper').append($('<i/>').addClass('fa fa-check fa-fw'));
                 this.$cancel = $('<a/>', { title: '取消' }).append($('<i/>').addClass('fa fa-undo fa-fw'));
 
+                this.$elm.removeAttr('data-text');
                 this.$elm.attr('type', 'hidden').val(value);
                 this.$elm.parent().find('.poweredit').remove();
                 this.$elm.after(this.$target.append(this.$label));
@@ -86,11 +88,19 @@
                     this.$cancel.unbind("click").click($.proxy(self.cancel, self)).hide();
                     this.$target.on('keydown', 'input[type=text]', $.proxy(self.events.keydown, self));
                     this.$target.on('keyup', 'input[type=text], textarea', $.proxy(self.events.keyup, self));
+
+                    if (this.options.onhover) {
+                        this.$target.parent().on('mouseenter', '.poweredit', $.proxy(self.events.mouseenter, self));
+                        this.$target.parent().on('mouseleave', '.poweredit', $.proxy(self.events.mouseleave, self));
+                    }
                 }
             },
             loaded: function () {
                 var self = this;
 
+                if (self.options.onhover) {
+                    self.$editit.hide();
+                }
                 if (self.column.type === 'textarea') {
                     var value = self.$label.text();
                     self.entity.value = value;
@@ -104,6 +114,7 @@
                 self.$editit.hide();
                 self.$submit.show();
                 self.$cancel.show();
+                self.$target.addClass('editting');
 
                 self.renderit.call(self);
             },
@@ -152,6 +163,7 @@
                 self.$editit.show();
                 self.$submit.hide();
                 self.$cancel.hide();
+                self.$target.removeClass('editting');
             },
 
             renderit: function () {
@@ -296,6 +308,44 @@
                         }
                     } return;
 
+                    case 'powerSelection': {
+                        $label = $('<label>', { 'for': self.entity.key }).text(self.entity.text);
+                        $input = $('<input/>', { type: 'hidden', id: self.entity.key, name: self.entity.key }).val(self.entity.value);
+
+                        if (typeof self.column.options === 'undefined') {
+                            throw new Error("选择插件的规则必须定义options参数！");
+                        }
+
+                        var pluginName = "select" + self.column.options.name,
+                            requireName = self.column.options.name + "Selection";
+
+                        require([requireName], function () {
+                            var pluginOpts = $.extend(self.column.options, {
+                                init: function () {
+                                    var ids = self.entity.value.split(","),
+                                        names = self.entity.text.split(",");
+                                    if (ids.length) {
+                                        for (var i = 0; i < ids.length; i++) {
+                                            this.onAddObject(ids[i], names[i]);
+                                        }
+                                    }
+                                },
+                                success: function (names, values) {
+                                    $input.val(values);
+                                    $label.text(names);
+                                },
+                                hide: function () {
+                                    //self.$editForm.hide();
+                                }
+                            });
+                            if (pluginName === "selectUsersProvider") {
+                                $.selectUsersProvider(pluginOpts);
+                            } else {
+                                $.power[pluginName](pluginOpts);
+                            }
+                        });
+                    } break;
+
                     default: {
                         if (typeof self.column.renderit === 'function') {
                             $input = self.column.renderit.call(self);
@@ -351,6 +401,10 @@
                         var selected = $input.find('option:selected')
                         entity.value = selected.val();
                         entity.text = selected.text();
+                    } break;
+                    case 'powerSelection': {
+                        entity.value = $input.val();
+                        entity.text = entity.value ? $input.next().text() : '';
                     } break;
                     default: {
                         if (typeof self.column.getvalue === 'function') {
@@ -415,6 +469,20 @@
                     var self = this;
 
                     self.submit.call(self);
+                },
+                mouseenter: function (e) {
+                    var self = this;
+                    if (!self.options.onhover) return;
+                    if (self.$target.hasClass('editting')) return;
+
+                    self.$editit.show();
+                },
+                mouseleave: function (e) {
+                    var self = this;
+                    if (!self.options.onhover) return;
+                    if (self.$target.hasClass('editting')) return;
+
+                    self.$editit.hide();
                 }
             },
 
