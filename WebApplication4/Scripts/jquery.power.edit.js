@@ -17,7 +17,7 @@
         };
         options = $.extend({}, defaluts, options);
 
-        var poweredit = function (_, column, options) {
+        var poweredit = function (pe, column, options) {
             this.options = $.extend({}, poweredit.defaults, options);
             this.column = $.extend({}, poweredit.column, column);
 
@@ -26,11 +26,13 @@
             if (!this.column.type)
                 throw 'input\'s type is required!';
 
-            this.$form = $(_);
+            this.$form = $(pe);
             this.$elm = this.$form.find('input[name=' + column.name + ']');
 
             if (!this.$elm)
-                throw 'unfound column ' + this.column.name;
+                throw 'not found column ' + this.column.name;
+            if (this.$elm.length > 1)
+                throw 'found columns more than one :' + this.column.name;
 
             this.entity = $.extend({}, poweredit.entity, {
                 key: this.column.name + this.motheds.newGuid(),
@@ -41,21 +43,43 @@
             this.init();
         };
         poweredit.defaults = defaluts;
-        poweredit.column = {
-            name: '',
-            type: '',
-            enable: true,
-            minLength: null,
-            maxLength: null,
-            min: null,
-            max: null,
-            url: '',        // Url数据源
-            data: null,     // Data数据源
-            options: {},    // 插件渲染所需参数
-            renderit: null, // function () { //添加编辑插件（可放回$input， 可直接加入） };
-            getvalue: null, // function () { return { text: '', value: '' }; }
-            validate: null  // function (entity) { return true; }
-        };
+        poweredit.Ctls = {
+            text: 'text',
+            date: 'date',
+            number: 'number',
+            password: 'password',
+            textarea: 'textarea',
+            checkbox: 'checkbox',
+            checkboxlist: 'checkboxlist',
+            radiobuttonlist: 'radiobuttonlist',
+            dropdownlist: 'dropdownlist',
+
+            //easyui
+            combo: 'combo',
+            combobox: 'combobox',
+            combotree: 'combotree',
+            numberbox: 'numberbox',
+            datebox: 'datebox',
+            datetimebox: 'datetimebox',
+
+            //customs
+            powerSelection: 'powerSelection'
+        },
+            poweredit.column = {
+                name: '',
+                type: '',
+                enable: true,
+                minLength: null,
+                maxLength: null,
+                min: null,
+                max: null,
+                url: '',        // Url数据源
+                data: null,     // Data数据源
+                options: {},    // 插件渲染所需参数
+                renderit: null, // function () { //添加编辑插件（可放回$input， 可直接加入） };
+                getvalue: null, // function () { return { text: '', value: '' }; }
+                validate: null  // function (entity) { return true; }
+            };
         poweredit.entity = {
             key: '',
             text: '',
@@ -101,7 +125,7 @@
                 if (self.options.onhover) {
                     self.$editit.hide();
                 }
-                if (self.column.type === 'textarea') {
+                if (self.column.type === poweredit.Ctls.textarea) {
                     var value = self.$label.text();
                     self.entity.value = value;
                     self.$label.addClass('multi-line').html(value ? value.replace(/\n/g, '<br/>') : '');
@@ -154,7 +178,7 @@
                     self.loaded.call(self);
                 }
 
-                var $input = self.$target.find('[name=' + self.entity.key + ']'),
+                var $input = self.$target.find('#' + self.entity.key + ', [name=' + self.entity.key + '], .textbox'),
                     $label = self.$target.find('label[for]');
                 $input.length && $input.remove();
                 $label.length && $label.remove();
@@ -192,19 +216,20 @@
                 }
 
                 switch (self.column.type) {
-                    case 'text':
-                    case 'date':
-                    case 'password': {
+                    case poweredit.Ctls.text:
+                    case poweredit.Ctls.date:
+                    case poweredit.Ctls.number:
+                    case poweredit.Ctls.password: {
                         $input = $('<input/>', { type: self.column.type, id: self.entity.key, name: self.entity.key });
                         $input.val(self.entity.value);
                     } break;
 
-                    case 'textarea': {
+                    case poweredit.Ctls.textarea: {
                         $input = $('<textarea/>', { type: self.column.type, id: self.entity.key, name: self.entity.key, row: 8 }).css({ 'width': '90%', 'min-height': '80px' });
                         $input.text(self.entity.value);
                     } break;
 
-                    case 'checkbox': {
+                    case poweredit.Ctls.checkbox: {
                         $label = $('<label>', { 'for': self.entity.key }).text(self.column.label);
                         $input = $('<input/>', { type: self.column.type, id: self.entity.key, name: self.entity.key });
 
@@ -216,7 +241,7 @@
                         }
                     } break;
 
-                    case 'checkboxlist': {
+                    case poweredit.Ctls.checkboxlist: {
                         var array = [], selected = [];
                         var rendercore = function (data) {
                             self.column.data = data;
@@ -243,13 +268,14 @@
                         if (self.column.data) {
                             rendercore(self.column.data);
                         } else if (self.column.url) {
-                            $.post(self.column.url, self.column.options, rendercore);
+                            var opts = $.extend({}, self.column.options);
+                            $.post(self.column.url, opts, rendercore);
                         } else {
                             throw 'invaildate checkboxlist data'
                         }
                     } break;
 
-                    case 'radiobuttonlist': {
+                    case poweredit.Ctls.radiobuttonlist: {
                         var array = [];
                         var rendercore = function (data) {
                             self.column.data = data;
@@ -269,13 +295,14 @@
                         if (self.column.data) {
                             rendercore(self.column.data);
                         } else if (self.column.url) {
-                            $.post(self.column.url, self.column.options, rendercore);
+                            var opts = $.extend({}, self.column.options);
+                            $.post(self.column.url, opts, rendercore);
                         } else {
                             throw 'invaildate radiobuttonlist data'
                         }
                     } break;
 
-                    case 'dropdownlist': {
+                    case poweredit.Ctls.dropdownlist: {
                         $input = $('<select />', { id: self.entity.key, name: self.entity.key });
                         var selected = [];
                         var rendercore = function (data) {
@@ -302,13 +329,14 @@
                         if (self.column.data) {
                             rendercore(self.column.data);
                         } else if (self.column.url) {
-                            $.post(self.column.url, self.column.options, rendercore);
+                            var opts = $.extend({}, self.column.options);
+                            $.post(self.column.url, opts, rendercore);
                         } else {
                             throw 'invaildate dropdownlist data'
                         }
                     } return;
 
-                    case 'powerSelection': {
+                    case poweredit.Ctls.powerSelection: {
                         $label = $('<label>', { 'for': self.entity.key }).text(self.entity.text);
                         $input = $('<input/>', { type: 'hidden', id: self.entity.key, name: self.entity.key }).val(self.entity.value);
 
@@ -335,7 +363,7 @@
                                     $label.text(names);
                                 },
                                 hide: function () {
-                                    //self.$editForm.hide();
+                                    self.$cancel.click();
                                 }
                             });
                             if (pluginName === "selectUsersProvider") {
@@ -343,6 +371,27 @@
                             } else {
                                 $.power[pluginName](pluginOpts);
                             }
+                        });
+                    } break;
+                    case poweredit.Ctls.combo:
+                    case poweredit.Ctls.combobox:
+                    case poweredit.Ctls.combotree:
+                    case poweredit.Ctls.datebox:
+                    case poweredit.Ctls.datetimebox: {
+                        $input = $('<input/>', { type: 'text', id: self.entity.key, name: self.entity.key }).val(self.entity.value);
+
+                        require(['easyui'], function () {
+                            var opts = $.extend({}, { editable: false }, self.column.options); //默认不允许手工编辑
+                            $input[self.column.type](opts);
+                            $input[self.column.type]("showPanel");
+                        });
+                    } break;
+                    case poweredit.Ctls.numberbox: {
+                        $input = $('<input/>', { type: 'text', id: self.entity.key, name: self.entity.key }).val(self.entity.value);
+
+                        require(['easyui'], function () {
+                            var opts = $.extend({}, { precision: 0 }, self.column.options);
+                            $input[self.column.type](opts);
                         });
                     } break;
 
@@ -367,20 +416,18 @@
                 };
 
                 switch (self.column.type) {
-                    case 'text':
-                    case 'date':
-                    case 'textarea':
-                    case 'password': {
+                    case poweredit.Ctls.text:
+                    case poweredit.Ctls.date:
+                    case poweredit.Ctls.number:
+                    case poweredit.Ctls.textarea:
+                    case poweredit.Ctls.password: {
                         entity.value = $input.val();
                     } break;
-                    case 'textarea': {
-                        entity.value = $input.text();
-                    } break;
-                    case 'checkbox': {
+                    case poweredit.Ctls.checkbox: {
                         entity.value = $input.is(':checked');
                         entity.text = entity.value ? $input.next().text() : '';
                     } break;
-                    case 'checkboxlist': {
+                    case poweredit.Ctls.checkboxlist: {
                         entity.value = []; entity.text = [];
                         $.each($input, function (i, e) {
                             if ($(e).is(':checked')) {
@@ -389,7 +436,7 @@
                             }
                         });
                     } break;
-                    case 'radiobuttonlist': {
+                    case poweredit.Ctls.radiobuttonlist: {
                         $.each($input, function (i, e) {
                             if ($(e).is(':checked')) {
                                 entity.value = $(e).val();
@@ -397,14 +444,31 @@
                             }
                         });
                     } break;
-                    case 'dropdownlist': {
+                    case poweredit.Ctls.dropdownlist: {
                         var selected = $input.find('option:selected')
                         entity.value = selected.val();
                         entity.text = selected.text();
                     } break;
-                    case 'powerSelection': {
+                    case poweredit.Ctls.powerSelection: {
                         entity.value = $input.val();
                         entity.text = entity.value ? $input.next().text() : '';
+                    } break;
+                    case poweredit.Ctls.combo:
+                    case poweredit.Ctls.combobox:
+                    case poweredit.Ctls.combotree:
+                    case poweredit.Ctls.datebox:
+                    case poweredit.Ctls.datetimebox: {
+                        $input = self.$target.find('#' + self.entity.key);
+
+                        var opts = $.extend({}, self.column.options);
+                        entity.value = $input[self.column.type](opts.multiple ? "getValues" : "getValue");
+                        entity.text = $input[self.column.type]("getText");
+                    } break;
+                    case poweredit.Ctls.numberbox: {
+                        $input = self.$target.find('#' + self.entity.key);
+
+                        entity.value = $input[self.column.type]("getValue");
+                        entity.text = entity.value;
                     } break;
                     default: {
                         if (typeof self.column.getvalue === 'function') {
